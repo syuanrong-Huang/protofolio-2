@@ -17,33 +17,52 @@
       height: 100vh;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "Segoe UI", Roboto, sans-serif;
-      background: #1c1a17;
+      background: #4e4b45;
       position: relative;
     }
 
-    /* ================= 1. 拉遠視角的街景背景（電線桿比例縮小，可容納15張傳單） ================= */
-    .street-scene {
+    /* ================= 1. 拉遠鏡頭的街景背景（電線桿縮小拉長，露出更多柱身） ================= */
+    .street-scene-wrapper {
       position: absolute;
       inset: 0;
       z-index: 0;
-      background-image: url('./bg.jpg?v=8');
-      /* 拉遠視角：讓背景呈現更多街道空間，電線桿相對變細長 */
-      background-size: 118% auto;
-      background-position: 74% 48%;
-      background-repeat: no-repeat;
+      overflow: hidden;
       transition: filter 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: filter, transform;
     }
 
-    @media (max-aspect-ratio: 16/10) {
+    /* 柔和延展背景底層（避免縮小鏡頭時四周出現黑邊） */
+    .street-backdrop-fill {
+      position: absolute;
+      inset: -30px;
+      background-image: url('./bg.jpg?v=9');
+      background-size: cover;
+      background-position: 72% center;
+      filter: blur(24px) brightness(0.92);
+      transform: scale(1.1);
+    }
+
+    /* 主背景圖（縮小至 88% 視覺比例，讓電線桿明顯變細變長） */
+    .street-scene {
+      position: absolute;
+      inset: 0;
+      background-image: url('./bg.jpg?v=9');
+      background-size: auto 92%;
+      background-position: 72% center;
+      background-repeat: no-repeat;
+      /* 四周微羽化融入延展底層，完全看不出邊界 */
+      -webkit-mask-image: radial-gradient(ellipse 92% 94% at 50% 50%, #000 78%, transparent 100%);
+      mask-image: radial-gradient(ellipse 92% 94% at 50% 50%, #000 78%, transparent 100%);
+    }
+
+    /* 電腦寬螢幕時維持滿版寬度並將電線桿拉長 */
+    @media (min-aspect-ratio: 16/10) {
       .street-scene {
-        background-size: auto 100%;
-        background-position: 73% center;
+        background-size: 90% auto;
+        background-position: 72% center;
       }
     }
 
-    /* Zoom-in 閱讀時背景模糊暗化 */
-    body.zoomed .street-scene {
+    body.zoomed .street-scene-wrapper {
       filter: blur(12px) brightness(0.62);
       transform: scale(1.04);
     }
@@ -71,18 +90,17 @@
       pointer-events: none;
     }
 
-    /* ================= 3. 電線桿上的 15 張傳單容器 ================= */
+    /* ================= 3. 電線桿上的 15 張傳單容器（拉長至 94vh，寬度配合細長電線桿） ================= */
     .pole-flyers-zone {
       position: absolute;
-      /* 對齊畫面右側電線桿位置（約 72% 處），寬度縮窄以符合拉遠後的電線桿比例 */
-      left: 72%;
+      left: 71.2%;
       top: 50%;
-      width: 240px;
-      height: 86vh;
+      width: 215px;
+      height: 94vh;
       transform: translate(-50%, -50%);
       perspective: 900px;
       z-index: 10;
-      transition: opacity 0.3s ease, filter 0.35s ease;
+      transition: opacity 0.3s ease;
     }
 
     body.zoomed .pole-flyers-zone {
@@ -90,26 +108,27 @@
       pointer-events: none;
     }
 
-    /* 單張迷你傳單樣式 */
+    /* 單張迷你傳單（尺寸縮小，彼此留出呼吸空間與自然小幅交錯） */
     .mini-flyer {
       position: absolute;
-      width: 78px;
-      height: 112px;
+      width: 62px;
+      height: 88px;
       background: #fdfbf7;
       border-radius: 1.5px;
       cursor: pointer;
-      box-shadow: -2px 4px 10px rgba(15, 14, 12, 0.42);
+      box-shadow: -2px 3px 8px rgba(15, 14, 12, 0.42);
       transition:
         transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
         box-shadow 0.25s ease,
-        z-index 0s;
+        filter 0.2s ease;
       overflow: visible;
     }
 
     .mini-flyer:hover {
-      transform: translate(-50%, -50%) scale(1.28) rotate(0deg) !important;
+      transform: translate(-50%, -50%) scale(1.38) rotate(0deg) !important;
       z-index: 99 !important;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+      filter: brightness(1.03) !important;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.65);
     }
 
     .mini-flyer-inner {
@@ -121,7 +140,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 8px 7px;
+      padding: 6px 5px;
     }
 
     .mini-flyer-inner img {
@@ -133,31 +152,29 @@
       display: block;
     }
 
-    /* 迷你傳單膠帶 */
     .mini-tape {
       position: absolute;
-      top: -4px;
+      top: -3.5px;
       left: 50%;
       transform: translateX(-50%);
-      width: 26px;
-      height: 7px;
+      width: 22px;
+      height: 6px;
       z-index: 5;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
 
-    /* 迷你傳單內建文字縮影 */
     .mini-tag {
-      font-size: 7px;
+      font-size: 6px;
       font-weight: 800;
       opacity: 0.75;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.2px;
     }
 
     .mini-title {
-      font-size: 10px;
+      font-size: 8.5px;
       font-weight: 800;
-      line-height: 1.22;
-      margin-top: 3px;
+      line-height: 1.2;
+      margin-top: 2px;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
@@ -165,11 +182,11 @@
     }
 
     .mini-num {
-      font-size: 8px;
+      font-size: 7px;
       font-weight: 700;
       opacity: 0.65;
       border-top: 1px dashed rgba(0, 0, 0, 0.25);
-      padding-top: 3px;
+      padding-top: 2px;
       text-align: right;
     }
 
@@ -182,11 +199,11 @@
       }
       .pole-flyers-zone {
         left: 68%;
-        width: 200px;
+        width: 175px;
       }
       .mini-flyer {
-        width: 66px;
-        height: 94px;
+        width: 52px;
+        height: 74px;
       }
     }
 
@@ -298,7 +315,6 @@
       background: #44403c;
     }
 
-    /* 放大視窗底部快速切換列 */
     .reader-nav {
       margin-top: 16px;
       display: flex;
@@ -338,8 +354,11 @@
 </head>
 <body>
 
-  <!-- 1. 拉遠後的街景背景 -->
-  <div class="street-scene" id="streetScene"></div>
+  <!-- 1. 拉遠後的街景背景（電線桿縮小拉長） -->
+  <div class="street-scene-wrapper">
+    <div class="street-backdrop-fill"></div>
+    <div class="street-scene" id="streetScene"></div>
+  </div>
 
   <!-- 2. 操作提示 -->
   <div class="header-guide">
@@ -369,13 +388,6 @@
   </div>
 
   <script>
-    /**
-     * =================================================================
-     * 【設定區：15 張傳單的作品集與履歷資料】
-     * 把做好的圖片上傳到同一個 GitHub 資料夾，並將對應項目的 imageUrl 改成檔名
-     * （例如 "./work01.jpg"），未填圖片的項目會自動顯示色塊排版範本！
-     * =================================================================
-     */
     const FLYERS_15 = [
       { title: "01. 個人簡介與履歷總覽", tag: "RESUME", heading: "個人簡介與求職履歷", desc: "創意設計與行銷企劃背景，擅長品牌視覺規劃與跨媒介整合行銷。", bgColor: "#fef3c7", textColor: "#78350f", imageUrl: "", externalLink: "https://www.linkedin.com" },
       { title: "02. 品牌識別重塑專案", tag: "BRANDING", heading: "新創咖啡品牌 CIS 識別設計", desc: "從 Logo 造型、字體規範到外帶杯包裝系統，建立溫暖且具記憶點的品牌形象。", bgColor: "#e0f2fe", textColor: "#0c4a6e", imageUrl: "", externalLink: "https://www.behance.net" },
@@ -395,35 +407,32 @@
     ];
 
     /**
-     * 15 張傳單在電線桿上的「錯落自然排版座標」
-     * x: 相對於電線桿中心的水平百分比（0% = 正中間，負值偏左，正值偏右）
-     * y: 垂直百分比位置（從 10% 到 88% 分布整根電線桿）
-     * rot: 微幅歪斜角度（-6deg ~ +6deg，模擬人工張貼的自然感）
-     * tape: 膠帶顏色
+     * 重新調校的 15 張錯落座標：
+     * 從頂部 6% 一路分布到底部 93%，只保留邊角小幅重疊，每張傳單標題都清晰可見！
      */
     const POLE_LAYOUT = [
-      { x: -16, y: 11, rot: -4 },
-      { x:  18, y: 14, rot:  5 },
-      { x:  -4, y: 21, rot:  2 },
-      { x: -24, y: 27, rot: -6 },
-      { x:  22, y: 30, rot:  4 },
-      { x:   2, y: 36, rot: -2 },
-      { x: -20, y: 43, rot:  5 },
-      { x:  19, y: 45, rot: -4 },
-      { x:  -2, y: 52, rot:  3 },
-      { x: -22, y: 59, rot: -5 },
-      { x:  21, y: 61, rot:  6 },
-      { x:   0, y: 68, rot: -2 },
-      { x: -18, y: 75, rot:  4 },
-      { x:  17, y: 78, rot: -5 },
-      { x:  -1, y: 85, rot:  2 }
+      { x: -18, y:  6.5, rot: -4 },
+      { x:  20, y:  9.5, rot:  5 },
+      { x:  -3, y: 17.5, rot:  2 },
+      { x: -23, y: 24.5, rot: -5 },
+      { x:  22, y: 27.5, rot:  4 },
+      { x:   1, y: 35.5, rot: -2 },
+      { x: -21, y: 42.5, rot:  5 },
+      { x:  20, y: 45.5, rot: -4 },
+      { x:  -2, y: 53.5, rot:  3 },
+      { x: -22, y: 61.0, rot: -5 },
+      { x:  21, y: 63.5, rot:  5 },
+      { x:   0, y: 71.5, rot: -2 },
+      { x: -20, y: 79.0, rot:  4 },
+      { x:  19, y: 82.0, rot: -4 },
+      { x:  -1, y: 90.0, rot:  2 }
     ];
 
     const TAPE_COLORS = [
-      "rgba(215, 42, 42, 0.85)",   // 紅電火布
-      "rgba(234, 179, 8, 0.82)",   // 黃膠帶
-      "rgba(214, 195, 165, 0.88)", // 牛皮紙膠帶
-      "rgba(59, 130, 246, 0.78)"   // 藍膠帶
+      "rgba(215, 42, 42, 0.85)",
+      "rgba(234, 179, 8, 0.82)",
+      "rgba(214, 195, 165, 0.88)",
+      "rgba(59, 130, 246, 0.78)"
     ];
 
     const poleFlyersZone = document.getElementById("poleFlyersZone");
@@ -438,7 +447,6 @@
 
     let currentIndex = 0;
 
-    // 1. 將 15 張傳單鋪設在電線桿上
     function renderAllPoleFlyers() {
       poleFlyersZone.innerHTML = "";
 
@@ -447,25 +455,22 @@
         const flyer = document.createElement("div");
         flyer.className = "mini-flyer";
 
-        // 計算水平與垂直位置，並根據左右偏移加上貼合圓柱弧度的細微 3D 傾角與明暗
         const leftPercent = 50 + pos.x;
-        const curveRotateY = pos.x * 0.75; // 貼在圓柱左側微向左轉，右側微向右轉
-        const shadeBrightness = 1 - Math.max(0, pos.x * 0.005); // 右側微背光變暗
+        const curveRotateY = pos.x * 0.7;
+        const shadeBrightness = 1 - Math.max(0, pos.x * 0.0045);
 
         flyer.style.left = `${leftPercent}%`;
         flyer.style.top = `${pos.y}%`;
-        flyer.style.zIndex = 10 + (index % 5);
+        flyer.style.zIndex = 10 + (index % 4);
         flyer.style.transform = `translate(-50%, -50%) rotateY(${curveRotateY}deg) rotate(${pos.rot}deg)`;
         flyer.style.filter = `brightness(${shadeBrightness.toFixed(2)})`;
         flyer.title = `${item.title}（點擊放大閱讀）`;
 
-        // 膠帶
         const tape = document.createElement("div");
         tape.className = "mini-tape";
         tape.style.background = TAPE_COLORS[index % TAPE_COLORS.length];
         flyer.appendChild(tape);
 
-        // 傳單內容
         const inner = document.createElement("div");
         inner.className = "mini-flyer-inner";
         inner.style.backgroundColor = item.bgColor;
@@ -484,15 +489,11 @@
         }
 
         flyer.appendChild(inner);
-
-        // 點擊該張傳單 -> Zoom-in 放大到畫面中央閱讀
         flyer.addEventListener("click", () => openZoomReader(index));
-
         poleFlyersZone.appendChild(flyer);
       });
     }
 
-    // 2. 渲染放大閱讀視窗內的指定傳單
     function renderReaderPage(index, animate = true) {
       const total = FLYERS_15.length;
       currentIndex = (index + total) % total;
