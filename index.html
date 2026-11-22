@@ -1,263 +1,565 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>我的作品集</title>
-<style>
-  /* ===== 可調整參數：傳單在電線桿上的位置 ===== */
-  :root {
-    --flyer-x: 72.1%;    /* 傳單中心點，距離背景圖左邊的百分比（已對準電線桿） */
-    --flyer-y: 45%;      /* 傳單中心點，距離背景圖上方的百分比 */
-    --flyer-w: 16.4%;    /* 傳單寬度（相對背景圖寬度） */
-    --flyer-rot: 0deg;   /* 傳單傾斜角度 */
-    --ratio: 0.7;        /* 傳單寬 / 高 */
-    --ch: min(82vh, calc(88vw / 0.7)); /* 放大後卡片高度 */
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>街角作品集｜15張傳單互動牆</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
 
-  * { box-sizing: border-box; margin: 0; }
-  html, body { height: 100%; overflow: hidden; background: #111; font-family: "Noto Sans TC", system-ui, sans-serif; }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "Segoe UI", Roboto, sans-serif;
+      background: #1c1a17;
+      position: relative;
+    }
 
-  /* 背景舞台：永遠 cover 整個視窗，傳單用百分比貼在圖上，縮放時不會跑位 */
-  #stage { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-  #stage img.bg { width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+    /* ================= 1. 拉遠視角的街景背景（電線桿比例縮小，可容納15張傳單） ================= */
+    .street-scene {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: url('./bg.jpg?v=8');
+      /* 拉遠視角：讓背景呈現更多街道空間，電線桿相對變細長 */
+      background-size: 118% auto;
+      background-position: 74% 48%;
+      background-repeat: no-repeat;
+      transition: filter 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: filter, transform;
+    }
 
-  /* ===== 傳單 ===== */
-  #flyer {
-    position: absolute; left: var(--flyer-x); top: var(--flyer-y);
-    width: var(--flyer-w); aspect-ratio: 7 / 10;
-    transform: translate(-50%, -50%) rotate(var(--flyer-rot));
-    cursor: pointer; border: 0; padding: 0; background: none;
-    filter: drop-shadow(2px 4px 4px rgba(0,0,0,.45));
-    transition: transform .25s ease;
-  }
-  #flyer:hover { transform: translate(-50%, -50%) rotate(var(--flyer-rot)) scale(1.06); }
-  #flyer.hidden { visibility: hidden; }
-  /* 紅色膠帶 */
-  #flyer::before {
-    content: ""; position: absolute; width: 32%; height: 5.5%; top: -2.8%; left: 34%;
-    background: rgba(200,60,50,.85); z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,.25);
-  }
-  #flyer .page { box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+    @media (max-aspect-ratio: 16/10) {
+      .street-scene {
+        background-size: auto 100%;
+        background-position: 73% center;
+      }
+    }
 
-  /* 傳單下方的提示膠囊 */
-  #pill {
-    position: absolute; left: var(--flyer-x); top: 70%; transform: translateX(-50%);
-    background: rgba(30,22,18,.88); color: #fff; font-size: clamp(10px, 1.05vw, 15px); font-weight: 700;
-    padding: .55em 1.1em; border-radius: 999px; white-space: nowrap; pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,.35);
-  }
-  #pill.hidden { visibility: hidden; }
+    /* Zoom-in 閱讀時背景模糊暗化 */
+    body.zoomed .street-scene {
+      filter: blur(12px) brightness(0.62);
+      transform: scale(1.04);
+    }
 
-  /* ===== 作品集頁面卡片（傳單與放大共用） ===== */
-  .page {
-    container-type: inline-size; width: 100%; height: 100%;
-    display: flex; flex-direction: column; justify-content: space-between;
-    padding: 9cqw; color: #fff; overflow: hidden; position: relative;
-  }
-  .page .tag   { font-size: 5cqw; letter-spacing: .25em; opacity: .85; }
-  .page h2     { font-size: 12cqw; line-height: 1.15; font-weight: 800; }
-  .page p      { font-size: 5cqw; line-height: 1.6; opacity: .92; margin-top: 4cqw; }
-  .page .foot  { font-size: 4.2cqw; opacity: .8; }
-  .page .photo { position: absolute; inset: 0; background-size: cover; background-position: center; z-index: 0; }
-  .page .photo + * , .page .photo ~ * { position: relative; z-index: 1; }
-  .page.has-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 30%, rgba(0,0,0,.65)); z-index: 0; }
+    /* ================= 2. 頂部提示 ================= */
+    .header-guide {
+      position: absolute;
+      top: 20px;
+      left: 28px;
+      z-index: 20;
+      background: rgba(24, 22, 20, 0.76);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 8px 18px;
+      border-radius: 999px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      font-size: 13px;
+      color: #f8fafc;
+      letter-spacing: 0.3px;
+      transition: opacity 0.3s ease;
+    }
 
-  /* ===== 放大層 ===== */
-  #overlay {
-    position: fixed; inset: 0; z-index: 10; display: none;
-    background: rgba(0,0,0,.35);
-    -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px);
-    transition: backdrop-filter .45s ease, -webkit-backdrop-filter .45s ease, background .45s ease;
-  }
-  #overlay.show { display: block; }
-  #overlay.on   { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); background: rgba(0,0,0,.5); }
+    body.zoomed .header-guide {
+      opacity: 0;
+      pointer-events: none;
+    }
 
-  #card {
-    position: absolute; left: 50%; top: 50%;
-    height: var(--ch); width: calc(var(--ch) * 0.7);
-    margin: calc(var(--ch) * -0.5) 0 0 calc(var(--ch) * -0.35);
-    border-radius: 6px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6);
-    transform-origin: top left;
-  }
-  #card.anim { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
-  #card .slide { position: absolute; inset: 0; transition: opacity .3s ease, transform .3s ease; }
-  #card .slide.out-left  { opacity: 0; transform: translateX(-8%); }
-  #card .slide.out-right { opacity: 0; transform: translateX(8%); }
+    /* ================= 3. 電線桿上的 15 張傳單容器 ================= */
+    .pole-flyers-zone {
+      position: absolute;
+      /* 對齊畫面右側電線桿位置（約 72% 處），寬度縮窄以符合拉遠後的電線桿比例 */
+      left: 72%;
+      top: 50%;
+      width: 240px;
+      height: 86vh;
+      transform: translate(-50%, -50%);
+      perspective: 900px;
+      z-index: 10;
+      transition: opacity 0.3s ease, filter 0.35s ease;
+    }
 
-  .nav {
-    position: fixed; top: 50%; transform: translateY(-50%); z-index: 12;
-    width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
-    background: rgba(255,255,255,.9); color: #222; font-size: 22px; line-height: 1;
-    opacity: 0; transition: opacity .3s, background .2s;
-  }
-  .nav:hover { background: #fff; }
-  #prev { left: max(8px, calc(50% - var(--ch) * 0.35 - 64px)); }
-  #next { right: max(8px, calc(50% - var(--ch) * 0.35 - 64px)); }
+    body.zoomed .pole-flyers-zone {
+      opacity: 0;
+      pointer-events: none;
+    }
 
-  #dots { position: fixed; bottom: 4vh; left: 0; right: 0; z-index: 12; display: flex; justify-content: center; gap: 10px; opacity: 0; transition: opacity .3s; }
-  #dots button { width: 10px; height: 10px; border-radius: 50%; border: 0; background: rgba(255,255,255,.4); cursor: pointer; padding: 0; }
-  #dots button.active { background: #fff; transform: scale(1.3); }
+    /* 單張迷你傳單樣式 */
+    .mini-flyer {
+      position: absolute;
+      width: 78px;
+      height: 112px;
+      background: #fdfbf7;
+      border-radius: 1.5px;
+      cursor: pointer;
+      box-shadow: -2px 4px 10px rgba(15, 14, 12, 0.42);
+      transition:
+        transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.25s ease,
+        z-index 0s;
+      overflow: visible;
+    }
 
-  #close {
-    position: fixed; top: 20px; right: 24px; z-index: 12; border: 0; background: none;
-    color: #fff; font-size: 34px; cursor: pointer; opacity: 0; transition: opacity .3s;
-  }
-  #overlay.ui .nav, #overlay.ui #dots, #overlay.ui #close { opacity: 1; }
+    .mini-flyer:hover {
+      transform: translate(-50%, -50%) scale(1.28) rotate(0deg) !important;
+      z-index: 99 !important;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+    }
 
-</style>
+    .mini-flyer-inner {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 1.5px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px 7px;
+    }
+
+    .mini-flyer-inner img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 迷你傳單膠帶 */
+    .mini-tape {
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 26px;
+      height: 7px;
+      z-index: 5;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+
+    /* 迷你傳單內建文字縮影 */
+    .mini-tag {
+      font-size: 7px;
+      font-weight: 800;
+      opacity: 0.75;
+      letter-spacing: 0.3px;
+    }
+
+    .mini-title {
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.22;
+      margin-top: 3px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .mini-num {
+      font-size: 8px;
+      font-weight: 700;
+      opacity: 0.65;
+      border-top: 1px dashed rgba(0, 0, 0, 0.25);
+      padding-top: 3px;
+      text-align: right;
+    }
+
+    @media (max-width: 768px) {
+      .header-guide {
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .pole-flyers-zone {
+        left: 68%;
+        width: 200px;
+      }
+      .mini-flyer {
+        width: 66px;
+        height: 94px;
+      }
+    }
+
+    /* ================= 4. Zoom-in 放大閱讀視窗 ================= */
+    .reader-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    body.zoomed .reader-overlay {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .reader-card {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      max-height: 78vh;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.58);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform: scale(0.84) translateY(16px);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.zoomed .reader-card {
+      transform: scale(1) translateY(0);
+    }
+
+    .btn-close {
+      position: fixed;
+      top: 24px;
+      right: 28px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(24, 22, 20, 0.8);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.15s;
+      z-index: 60;
+    }
+
+    .btn-close:hover {
+      background: rgba(24, 22, 20, 0.96);
+      transform: scale(1.06);
+    }
+
+    .reader-viewport {
+      width: 100%;
+      overflow-y: auto;
+      max-height: 70vh;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .reader-viewport img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .reader-footer {
+      padding: 14px 20px;
+      background: #fafaf9;
+      border-top: 1px solid #e7e5e4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1c1917;
+    }
+
+    .ext-link {
+      text-decoration: none;
+      background: #1c1917;
+      color: #ffffff;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .ext-link:hover {
+      background: #44403c;
+    }
+
+    /* 放大視窗底部快速切換列 */
+    .reader-nav {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(24, 22, 20, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 8px 18px;
+      border-radius: 999px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-btn {
+      border: none;
+      background: #fdfbf7;
+      color: #1c1917;
+      padding: 7px 15px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav-btn:hover {
+      background: #e7e5e4;
+    }
+
+    .nav-counter {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fafaf9;
+      min-width: 66px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
 
-<div id="stage">
-  <img class="bg" id="bg" src="bg.jpg" alt="街景">
-  <button id="flyer" aria-label="打開作品集"></button>
-  <div id="pill">👆 點擊傳單翻閱作品集</div>
-</div>
+  <!-- 1. 拉遠後的街景背景 -->
+  <div class="street-scene" id="streetScene"></div>
 
-<div id="overlay">
-  <button id="close" aria-label="關閉">×</button>
-  <button class="nav" id="prev" aria-label="上一頁">‹</button>
-  <button class="nav" id="next" aria-label="下一頁">›</button>
-  <div id="card"></div>
-  <div id="dots"></div>
-</div>
+  <!-- 2. 操作提示 -->
+  <div class="header-guide">
+    <span>👆 點擊電線桿上的任一張傳單，即可放大閱讀作品細節（共 15 張）</span>
+  </div>
 
-<script>
-/* ===== 在這裡編輯你的作品集內容 =====
-   第一筆是封面（會貼在電線桿上），其後每一筆是一個作品。
-   image: 放圖片路徑（例如 "images/work1.jpg"），沒有就留空字串，會用 color 當背景。 */
-const pages = [
-  { tag: "PORTFOLIO COVER", title: "創意設計與行銷企劃作品集", desc: "點擊這張傳單進入全螢幕閱讀模式，瀏覽我的作品與完整履歷。", foot: "點擊放大翻閱 🔍",
-    color: "linear-gradient(160deg,#f8f1c9,#e6dcae)", text: "#6b2f12",
-    image: "", imageOnly: false /* ← 之後換封面：image 填 "images/cover.jpg"，imageOnly 改 true（整張只顯示圖片） */ },
-  { tag: "PROJECT 01", title: "作品一",       desc: "在這裡寫作品的簡介。",     foot: "2026 · 類型", color: "#2c3e50", image: "" },
-  { tag: "PROJECT 02", title: "作品二",       desc: "在這裡寫作品的簡介。",     foot: "2025 · 類型", color: "#16a085", image: "" },
-  { tag: "PROJECT 03", title: "作品三",       desc: "在這裡寫作品的簡介。",     foot: "2025 · 類型", color: "#8e44ad", image: "" },
-  { tag: "CONTACT",    title: "聯絡我",       desc: "email@example.com",       foot: "Thank you",  color: "#d35400", image: "" }
-];
+  <!-- 3. 電線桿上的 15 張傳單區 -->
+  <div class="pole-flyers-zone" id="poleFlyersZone"></div>
 
-const $ = id => document.getElementById(id);
-const stage = $("stage"), bg = $("bg"), flyer = $("flyer"),
-      overlay = $("overlay"), card = $("card"), dots = $("dots");
-let cur = 0, isOpen = false;
+  <!-- 4. Zoom-in 放大閱讀視窗 -->
+  <div class="reader-overlay" id="readerOverlay">
+    <button class="btn-close" id="closeBtn" title="返回電線桿 (ESC)">✕</button>
 
-/* 背景圖 cover 排版 */
-function layout() {
-  const r = (bg.naturalWidth || 3) / (bg.naturalHeight || 2);
-  const vw = innerWidth, vh = innerHeight;
-  const w = Math.max(vw, vh * r);
-  stage.style.width = w + "px";
-  stage.style.height = (w / r) + "px";
-}
-bg.addEventListener("load", layout);
-addEventListener("resize", layout);
-layout();
+    <div class="reader-card">
+      <div class="reader-viewport" id="readerViewport"></div>
+      <div class="reader-footer">
+        <span class="page-title" id="pageTitle">01. 作品名稱</span>
+        <a class="ext-link" id="extLink" href="#" target="_blank">開啟完整連結 ↗</a>
+      </div>
+    </div>
 
-/* 產生頁面 HTML */
-function pageHTML(p) {
-  if (p.imageOnly && p.image) return `<div class="page" style="padding:0"><div class="photo" style="background-image:url('${p.image}')"></div></div>`;
-  const photo = p.image ? `<div class="photo" style="background-image:url('${p.image}')"></div>` : "";
-  return `<div class="page ${p.image ? "has-photo" : ""}" style="background:${p.color};color:${p.text || '#fff'}">
-    ${photo}
-    <div class="tag">${p.tag}</div>
-    <div><h2>${p.title}</h2><p>${p.desc}</p></div>
-    <div class="foot">${p.foot}</div>
-  </div>`;
-}
-flyer.innerHTML = pageHTML(pages[0]);
-dots.innerHTML = pages.map((_, i) => `<button data-i="${i}" aria-label="第${i + 1}頁"></button>`).join("");
+    <div class="reader-nav">
+      <button class="nav-btn" id="prevPageBtn">← 上一張</button>
+      <div class="nav-counter" id="navCounter">1 / 15</div>
+      <button class="nav-btn" id="nextPageBtn">下一張 →</button>
+    </div>
+  </div>
 
-function setSlide(i, dir = 0) {
-  const old = card.querySelector(".slide");
-  const slide = document.createElement("div");
-  slide.className = "slide";
-  slide.innerHTML = pageHTML(pages[i]);
-  if (old && dir) {
-    slide.classList.add(dir > 0 ? "out-right" : "out-left");
-    card.appendChild(slide);
-    old.classList.add(dir > 0 ? "out-left" : "out-right");
-    requestAnimationFrame(() => requestAnimationFrame(() => slide.classList.remove("out-left", "out-right")));
-    setTimeout(() => old.remove(), 320);
-  } else {
-    card.innerHTML = "";
-    card.appendChild(slide);
-  }
-  cur = i;
-  [...dots.children].forEach((d, k) => d.classList.toggle("active", k === i));
-  $("prev").style.visibility = i === 0 ? "hidden" : "visible";
-  $("next").style.visibility = i === pages.length - 1 ? "hidden" : "visible";
-}
+  <script>
+    /**
+     * =================================================================
+     * 【設定區：15 張傳單的作品集與履歷資料】
+     * 把做好的圖片上傳到同一個 GitHub 資料夾，並將對應項目的 imageUrl 改成檔名
+     * （例如 "./work01.jpg"），未填圖片的項目會自動顯示色塊排版範本！
+     * =================================================================
+     */
+    const FLYERS_15 = [
+      { title: "01. 個人簡介與履歷總覽", tag: "RESUME", heading: "個人簡介與求職履歷", desc: "創意設計與行銷企劃背景，擅長品牌視覺規劃與跨媒介整合行銷。", bgColor: "#fef3c7", textColor: "#78350f", imageUrl: "", externalLink: "https://www.linkedin.com" },
+      { title: "02. 品牌識別重塑專案", tag: "BRANDING", heading: "新創咖啡品牌 CIS 識別設計", desc: "從 Logo 造型、字體規範到外帶杯包裝系統，建立溫暖且具記憶點的品牌形象。", bgColor: "#e0f2fe", textColor: "#0c4a6e", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "03. 年度社群話題操作", tag: "SOCIAL", heading: "IG 互動濾鏡與迷因企劃", desc: "結合時事話題與高共鳴圖文，單月自然觸及突破 45 萬人次。", bgColor: "#fce7f3", textColor: "#831843", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "04. 音樂祭主視覺海報", tag: "POSTER", heading: "城市獨立音樂節主視覺", desc: "運用高對比拼貼與實驗排版，呈現街頭文化與現場音樂的爆發力。", bgColor: "#dcfce7", textColor: "#14532d", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "05. 快閃店空間與動線企劃", tag: "EVENT", heading: "信義區週末快閃體驗店", desc: "負責現場打卡裝置視覺、現場體驗動線設計與 KOL 邀請合作。", bgColor: "#ffedd5", textColor: "#7c2d12", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "06. 食品包裝插畫系列", tag: "PACKAGING", heading: "手工果醬與茶飲禮盒包裝", desc: "以手繪植物插畫搭配燙金工藝，提升節慶禮盒客單價與送禮質感。", bgColor: "#f3e8ff", textColor: "#581c87", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "07. 短影音腳本與視覺指導", tag: "VIDEO", heading: "Reels / TikTok 品牌系列短片", desc: "規劃前 3 秒吸睛鉤子與分鏡視覺，平均完播率提升 38%。", bgColor: "#fef9c3", textColor: "#713f12", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "08. 展覽主視覺與導覽手冊", tag: "EXHIBITION", heading: "當代插畫聯展視覺統籌", desc: "包含主視覺海報、展場指標系統、票券與限量周邊商品設計。", bgColor: "#cffafe", textColor: "#164e63", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "09. 電商大檔視覺設計", tag: "E-COMMERCE", heading: "雙 11 購物節全站視覺規範", desc: "設計高轉換率商品首圖模板、活動頁 Banner 與社群倒數素材。", bgColor: "#ffe4e6", textColor: "#881337", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "10. 聯名周邊商品開發", tag: "MERCH", heading: "街頭潮牌聯名帆布袋與貼紙組", desc: "從插畫創作、材質打樣到社群限量抽獎預熱，開賣 2 小時全數完售。", bgColor: "#d1fae5", textColor: "#064e3b", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "11. 永續公益行銷專案", tag: "CSR / ESG", heading: "舊衣回收再造計畫宣傳企劃", desc: "以溫潤再生紙質感為視覺核心，號召超過 3,000 名消費者參與門市回收。", bgColor: "#e0e7ff", textColor: "#312e81", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "12. 書籍裝幀與排版設計", tag: "EDITORIAL", heading: "獨立生活風格誌刊物編排", desc: "負責專題攝影藝術指導、網格系統建立與內頁字體排印設計。", bgColor: "#fae8ff", textColor: "#701a75", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "13. 產品攝影與美術指導", tag: "ART DIR.", heading: "香氛系列自然光影情境攝影", desc: "設定拍攝腳本、道具陳列與色調規範，打造一致的品牌社群美學。", bgColor: "#f1f5f9", textColor: "#1e293b", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "14. 數位廣告素材 A/B 測試", tag: "ADS", heading: "Meta 廣告高點擊率視覺優化", desc: "透過多版本視覺與文案測試，將單次獲客成本（CPA）降低 27%。", bgColor: "#fef3c7", textColor: "#92400e", imageUrl: "", externalLink: "https://www.behance.net" },
+      { title: "15. 聯絡資訊與面試邀約", tag: "CONTACT", heading: "歡迎與我聯繫聊聊！", desc: "期待有機會加入貴團隊，一起打造兼具美感與影響力的作品。", bgColor: "#dcfce7", textColor: "#166534", imageUrl: "", externalLink: "mailto:example@email.com" }
+    ];
 
-/* 計算傳單 → 放大卡片的轉換（FLIP 動畫） */
-function flyerTransform() {
-  const f = flyer.getBoundingClientRect();
-  const c = card.getBoundingClientRect();
-  const s = f.width / c.width;
-  const rot = getComputedStyle(document.documentElement).getPropertyValue("--flyer-rot").trim() || "0deg";
-  // 以中心點對齊
-  const dx = (f.left + f.width / 2) - (c.left + c.width / 2);
-  const dy = (f.top + f.height / 2) - (c.top + c.height / 2);
-  return `translate(${dx}px, ${dy}px) rotate(${rot}) scale(${s})`;
-}
+    /**
+     * 15 張傳單在電線桿上的「錯落自然排版座標」
+     * x: 相對於電線桿中心的水平百分比（0% = 正中間，負值偏左，正值偏右）
+     * y: 垂直百分比位置（從 10% 到 88% 分布整根電線桿）
+     * rot: 微幅歪斜角度（-6deg ~ +6deg，模擬人工張貼的自然感）
+     * tape: 膠帶顏色
+     */
+    const POLE_LAYOUT = [
+      { x: -16, y: 11, rot: -4 },
+      { x:  18, y: 14, rot:  5 },
+      { x:  -4, y: 21, rot:  2 },
+      { x: -24, y: 27, rot: -6 },
+      { x:  22, y: 30, rot:  4 },
+      { x:   2, y: 36, rot: -2 },
+      { x: -20, y: 43, rot:  5 },
+      { x:  19, y: 45, rot: -4 },
+      { x:  -2, y: 52, rot:  3 },
+      { x: -22, y: 59, rot: -5 },
+      { x:  21, y: 61, rot:  6 },
+      { x:   0, y: 68, rot: -2 },
+      { x: -18, y: 75, rot:  4 },
+      { x:  17, y: 78, rot: -5 },
+      { x:  -1, y: 85, rot:  2 }
+    ];
 
-function open() {
-  if (isOpen) return; isOpen = true;
-  setSlide(0);
-  overlay.classList.add("show");
-  card.classList.remove("anim");
-  card.style.transformOrigin = "center center";
-  card.style.transform = flyerTransform();
-  flyer.classList.add("hidden"); $("pill").classList.add("hidden");
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    card.classList.add("anim");
-    card.style.transform = "none";
-    overlay.classList.add("on");
-    setTimeout(() => overlay.classList.add("ui"), 350);
-  }));
-}
+    const TAPE_COLORS = [
+      "rgba(215, 42, 42, 0.85)",   // 紅電火布
+      "rgba(234, 179, 8, 0.82)",   // 黃膠帶
+      "rgba(214, 195, 165, 0.88)", // 牛皮紙膠帶
+      "rgba(59, 130, 246, 0.78)"   // 藍膠帶
+    ];
 
-function close() {
-  if (!isOpen) return; isOpen = false;
-  overlay.classList.remove("ui", "on");
-  // 關閉時回到封面再縮回電線桿
-  if (cur !== 0) setSlide(0);
-  card.classList.add("anim");
-  card.style.transform = flyerTransform();
-  setTimeout(() => {
-    overlay.classList.remove("show");
-    flyer.classList.remove("hidden"); $("pill").classList.remove("hidden");
-    card.classList.remove("anim");
-  }, 500);
-}
+    const poleFlyersZone = document.getElementById("poleFlyersZone");
+    const readerOverlay = document.getElementById("readerOverlay");
+    const readerViewport = document.getElementById("readerViewport");
+    const pageTitle = document.getElementById("pageTitle");
+    const extLink = document.getElementById("extLink");
+    const navCounter = document.getElementById("navCounter");
+    const prevPageBtn = document.getElementById("prevPageBtn");
+    const nextPageBtn = document.getElementById("nextPageBtn");
+    const closeBtn = document.getElementById("closeBtn");
 
-function go(i) {
-  if (i < 0 || i >= pages.length || i === cur) return;
-  setSlide(i, i > cur ? 1 : -1);
-}
+    let currentIndex = 0;
 
-flyer.addEventListener("click", open);
-$("close").addEventListener("click", close);
-overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
-$("prev").addEventListener("click", () => go(cur - 1));
-$("next").addEventListener("click", () => go(cur + 1));
-dots.addEventListener("click", e => { if (e.target.dataset.i) go(+e.target.dataset.i); });
-addEventListener("keydown", e => {
-  if (!isOpen) return;
-  if (e.key === "Escape") close();
-  if (e.key === "ArrowRight") go(cur + 1);
-  if (e.key === "ArrowLeft") go(cur - 1);
-});
+    // 1. 將 15 張傳單鋪設在電線桿上
+    function renderAllPoleFlyers() {
+      poleFlyersZone.innerHTML = "";
 
-/* 手機滑動換頁 */
-let sx = null;
-card.addEventListener("touchstart", e => sx = e.touches[0].clientX, { passive: true });
-card.addEventListener("touchend", e => {
-  if (sx === null) return;
-  const dx = e.changedTouches[0].clientX - sx;
-  if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1));
-  sx = null;
-});
-</script>
+      FLYERS_15.forEach((item, index) => {
+        const pos = POLE_LAYOUT[index] || { x: 0, y: 50, rot: 0 };
+        const flyer = document.createElement("div");
+        flyer.className = "mini-flyer";
+
+        // 計算水平與垂直位置，並根據左右偏移加上貼合圓柱弧度的細微 3D 傾角與明暗
+        const leftPercent = 50 + pos.x;
+        const curveRotateY = pos.x * 0.75; // 貼在圓柱左側微向左轉，右側微向右轉
+        const shadeBrightness = 1 - Math.max(0, pos.x * 0.005); // 右側微背光變暗
+
+        flyer.style.left = `${leftPercent}%`;
+        flyer.style.top = `${pos.y}%`;
+        flyer.style.zIndex = 10 + (index % 5);
+        flyer.style.transform = `translate(-50%, -50%) rotateY(${curveRotateY}deg) rotate(${pos.rot}deg)`;
+        flyer.style.filter = `brightness(${shadeBrightness.toFixed(2)})`;
+        flyer.title = `${item.title}（點擊放大閱讀）`;
+
+        // 膠帶
+        const tape = document.createElement("div");
+        tape.className = "mini-tape";
+        tape.style.background = TAPE_COLORS[index % TAPE_COLORS.length];
+        flyer.appendChild(tape);
+
+        // 傳單內容
+        const inner = document.createElement("div");
+        inner.className = "mini-flyer-inner";
+        inner.style.backgroundColor = item.bgColor;
+        inner.style.color = item.textColor;
+
+        if (item.imageUrl && item.imageUrl.trim() !== "") {
+          inner.innerHTML = `<img src="${item.imageUrl}" alt="${item.title}" />`;
+        } else {
+          inner.innerHTML = `
+            <div>
+              <div class="mini-tag">${item.tag}</div>
+              <div class="mini-title">${item.heading}</div>
+            </div>
+            <div class="mini-num">#${String(index + 1).padStart(2, "0")}</div>
+          `;
+        }
+
+        flyer.appendChild(inner);
+
+        // 點擊該張傳單 -> Zoom-in 放大到畫面中央閱讀
+        flyer.addEventListener("click", () => openZoomReader(index));
+
+        poleFlyersZone.appendChild(flyer);
+      });
+    }
+
+    // 2. 渲染放大閱讀視窗內的指定傳單
+    function renderReaderPage(index, animate = true) {
+      const total = FLYERS_15.length;
+      currentIndex = (index + total) % total;
+      const item = FLYERS_15[currentIndex];
+
+      if (animate) {
+        readerViewport.style.opacity = "0";
+        readerViewport.style.transform = "scale(0.97)";
+      }
+
+      setTimeout(() => {
+        pageTitle.textContent = item.title;
+        navCounter.textContent = `${currentIndex + 1} / ${total}`;
+
+        if (item.externalLink && item.externalLink.trim() !== "") {
+          extLink.href = item.externalLink;
+          extLink.style.display = "inline-block";
+        } else {
+          extLink.style.display = "none";
+        }
+
+        if (item.imageUrl && item.imageUrl.trim() !== "") {
+          readerViewport.innerHTML = `<img src="${item.imageUrl}" alt="${item.title}" />`;
+        } else {
+          readerViewport.innerHTML = `
+            <div style="padding: 44px 32px; background:${item.bgColor}; color:${item.textColor}; min-height: 400px; display:flex; flex-direction:column; justify-content:space-between;">
+              <div>
+                <span style="font-size:12px; font-weight:700; padding:4px 10px; border-radius:4px; background:rgba(0,0,0,0.08);">${item.tag}</span>
+                <h2 style="font-size:28px; font-weight:800; margin-top:16px; line-height:1.35;">${item.heading}</h2>
+                <p style="font-size:16px; line-height:1.8; margin-top:16px;">${item.desc}</p>
+              </div>
+              <p style="font-size:12.5px; opacity:0.72; margin-top:32px;">（提示：將程式碼內第 ${currentIndex + 1} 項的 imageUrl 換成圖片檔名後，這裡就會顯示高清設計原圖）</p>
+            </div>
+          `;
+        }
+
+        readerViewport.scrollTop = 0;
+        readerViewport.style.opacity = "1";
+        readerViewport.style.transform = "scale(1)";
+      }, animate ? 130 : 0);
+    }
+
+    function openZoomReader(index) {
+      renderReaderPage(index, false);
+      document.body.classList.add("zoomed");
+    }
+
+    function closeZoomReader() {
+      document.body.classList.remove("zoomed");
+    }
+
+    closeBtn.addEventListener("click", closeZoomReader);
+    readerOverlay.addEventListener("click", (e) => {
+      if (e.target === readerOverlay) closeZoomReader();
+    });
+
+    prevPageBtn.addEventListener("click", () => renderReaderPage(currentIndex - 1));
+    nextPageBtn.addEventListener("click", () => renderReaderPage(currentIndex + 1));
+
+    window.addEventListener("keydown", (e) => {
+      if (!document.body.classList.contains("zoomed")) return;
+      if (e.key === "ArrowLeft") renderReaderPage(currentIndex - 1);
+      if (e.key === "ArrowRight") renderReaderPage(currentIndex + 1);
+      if (e.key === "Escape") closeZoomReader();
+    });
+
+    renderAllPoleFlyers();
+  </script>
 </body>
 </html>
