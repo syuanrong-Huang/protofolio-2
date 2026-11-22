@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的作品集</title>
+<style>
+  /* ===== 可調整參數：傳單在電線桿上的位置 ===== */
+  :root {
+    --flyer-x: 72.1%;    /* 傳單中心點，距離背景圖左邊的百分比（已對準電線桿） */
+    --flyer-y: 45%;      /* 傳單中心點，距離背景圖上方的百分比 */
+    --flyer-w: 16.4%;    /* 傳單寬度（相對背景圖寬度） */
+    --flyer-rot: 0deg;   /* 傳單傾斜角度 */
+    --ratio: 0.7;        /* 傳單寬 / 高 */
+    --ch: min(82vh, calc(88vw / 0.7)); /* 放大後卡片高度 */
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; overflow: hidden; background: #111; font-family: "Noto Sans TC", system-ui, sans-serif; }
+
+  /* 背景舞台：永遠 cover 整個視窗，傳單用百分比貼在圖上，縮放時不會跑位 */
+  #stage { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+  #stage img.bg { width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+
+  /* ===== 傳單 ===== */
+  #flyer {
+    position: absolute; left: var(--flyer-x); top: var(--flyer-y);
+    width: var(--flyer-w); aspect-ratio: 7 / 10;
+    transform: translate(-50%, -50%) rotate(var(--flyer-rot));
+    cursor: pointer; border: 0; padding: 0; background: none;
+    filter: drop-shadow(2px 4px 4px rgba(0,0,0,.45));
+    transition: transform .25s ease;
+  }
+  #flyer:hover { transform: translate(-50%, -50%) rotate(var(--flyer-rot)) scale(1.06); }
+  #flyer.hidden { visibility: hidden; }
+  /* 紅色膠帶 */
+  #flyer::before {
+    content: ""; position: absolute; width: 32%; height: 5.5%; top: -2.8%; left: 34%;
+    background: rgba(200,60,50,.85); z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  }
+  #flyer .page { box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+
+  /* 傳單下方的提示膠囊 */
+  #pill {
+    position: absolute; left: var(--flyer-x); top: 70%; transform: translateX(-50%);
+    background: rgba(30,22,18,.88); color: #fff; font-size: clamp(10px, 1.05vw, 15px); font-weight: 700;
+    padding: .55em 1.1em; border-radius: 999px; white-space: nowrap; pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35);
+  }
+  #pill.hidden { visibility: hidden; }
+
+  /* ===== 作品集頁面卡片（傳單與放大共用） ===== */
+  .page {
+    container-type: inline-size; width: 100%; height: 100%;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 9cqw; color: #fff; overflow: hidden; position: relative;
+  }
+  .page .tag   { font-size: 5cqw; letter-spacing: .25em; opacity: .85; }
+  .page h2     { font-size: 12cqw; line-height: 1.15; font-weight: 800; }
+  .page p      { font-size: 5cqw; line-height: 1.6; opacity: .92; margin-top: 4cqw; }
+  .page .foot  { font-size: 4.2cqw; opacity: .8; }
+  .page .photo { position: absolute; inset: 0; background-size: cover; background-position: center; z-index: 0; }
+  .page .photo + * , .page .photo ~ * { position: relative; z-index: 1; }
+  .page.has-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 30%, rgba(0,0,0,.65)); z-index: 0; }
+
+  /* ===== 放大層 ===== */
+  #overlay {
+    position: fixed; inset: 0; z-index: 10; display: none;
+    background: rgba(0,0,0,.35);
+    -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px);
+    transition: backdrop-filter .45s ease, -webkit-backdrop-filter .45s ease, background .45s ease;
+  }
+  #overlay.show { display: block; }
+  #overlay.on   { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); background: rgba(0,0,0,.5); }
+
+  #card {
+    position: absolute; left: 50%; top: 50%;
+    height: var(--ch); width: calc(var(--ch) * 0.7);
+    margin: calc(var(--ch) * -0.5) 0 0 calc(var(--ch) * -0.35);
+    border-radius: 6px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    transform-origin: top left;
+  }
+  #card.anim { transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+  #card .slide { position: absolute; inset: 0; transition: opacity .3s ease, transform .3s ease; }
+  #card .slide.out-left  { opacity: 0; transform: translateX(-8%); }
+  #card .slide.out-right { opacity: 0; transform: translateX(8%); }
+
+  .nav {
+    position: fixed; top: 50%; transform: translateY(-50%); z-index: 12;
+    width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(255,255,255,.9); color: #222; font-size: 22px; line-height: 1;
+    opacity: 0; transition: opacity .3s, background .2s;
+  }
+  .nav:hover { background: #fff; }
+  #prev { left: max(8px, calc(50% - var(--ch) * 0.35 - 64px)); }
+  #next { right: max(8px, calc(50% - var(--ch) * 0.35 - 64px)); }
+
+  #dots { position: fixed; bottom: 4vh; left: 0; right: 0; z-index: 12; display: flex; justify-content: center; gap: 10px; opacity: 0; transition: opacity .3s; }
+  #dots button { width: 10px; height: 10px; border-radius: 50%; border: 0; background: rgba(255,255,255,.4); cursor: pointer; padding: 0; }
+  #dots button.active { background: #fff; transform: scale(1.3); }
+
+  #close {
+    position: fixed; top: 20px; right: 24px; z-index: 12; border: 0; background: none;
+    color: #fff; font-size: 34px; cursor: pointer; opacity: 0; transition: opacity .3s;
+  }
+  #overlay.ui .nav, #overlay.ui #dots, #overlay.ui #close { opacity: 1; }
+
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img class="bg" id="bg" src="bg.jpg" alt="街景">
+  <button id="flyer" aria-label="打開作品集"></button>
+  <div id="pill">👆 點擊傳單翻閱作品集</div>
+</div>
+
+<div id="overlay">
+  <button id="close" aria-label="關閉">×</button>
+  <button class="nav" id="prev" aria-label="上一頁">‹</button>
+  <button class="nav" id="next" aria-label="下一頁">›</button>
+  <div id="card"></div>
+  <div id="dots"></div>
+</div>
+
+<script>
+/* ===== 在這裡編輯你的作品集內容 =====
+   第一筆是封面（會貼在電線桿上），其後每一筆是一個作品。
+   image: 放圖片路徑（例如 "images/work1.jpg"），沒有就留空字串，會用 color 當背景。 */
+const pages = [
+  { tag: "PORTFOLIO COVER", title: "創意設計與行銷企劃作品集", desc: "點擊這張傳單進入全螢幕閱讀模式，瀏覽我的作品與完整履歷。", foot: "點擊放大翻閱 🔍",
+    color: "linear-gradient(160deg,#f8f1c9,#e6dcae)", text: "#6b2f12",
+    image: "", imageOnly: false /* ← 之後換封面：image 填 "images/cover.jpg"，imageOnly 改 true（整張只顯示圖片） */ },
+  { tag: "PROJECT 01", title: "作品一",       desc: "在這裡寫作品的簡介。",     foot: "2026 · 類型", color: "#2c3e50", image: "" },
+  { tag: "PROJECT 02", title: "作品二",       desc: "在這裡寫作品的簡介。",     foot: "2025 · 類型", color: "#16a085", image: "" },
+  { tag: "PROJECT 03", title: "作品三",       desc: "在這裡寫作品的簡介。",     foot: "2025 · 類型", color: "#8e44ad", image: "" },
+  { tag: "CONTACT",    title: "聯絡我",       desc: "email@example.com",       foot: "Thank you",  color: "#d35400", image: "" }
+];
+
+const $ = id => document.getElementById(id);
+const stage = $("stage"), bg = $("bg"), flyer = $("flyer"),
+      overlay = $("overlay"), card = $("card"), dots = $("dots");
+let cur = 0, isOpen = false;
+
+/* 背景圖 cover 排版 */
+function layout() {
+  const r = (bg.naturalWidth || 3) / (bg.naturalHeight || 2);
+  const vw = innerWidth, vh = innerHeight;
+  const w = Math.max(vw, vh * r);
+  stage.style.width = w + "px";
+  stage.style.height = (w / r) + "px";
+}
+bg.addEventListener("load", layout);
+addEventListener("resize", layout);
+layout();
+
+/* 產生頁面 HTML */
+function pageHTML(p) {
+  if (p.imageOnly && p.image) return `<div class="page" style="padding:0"><div class="photo" style="background-image:url('${p.image}')"></div></div>`;
+  const photo = p.image ? `<div class="photo" style="background-image:url('${p.image}')"></div>` : "";
+  return `<div class="page ${p.image ? "has-photo" : ""}" style="background:${p.color};color:${p.text || '#fff'}">
+    ${photo}
+    <div class="tag">${p.tag}</div>
+    <div><h2>${p.title}</h2><p>${p.desc}</p></div>
+    <div class="foot">${p.foot}</div>
+  </div>`;
+}
+flyer.innerHTML = pageHTML(pages[0]);
+dots.innerHTML = pages.map((_, i) => `<button data-i="${i}" aria-label="第${i + 1}頁"></button>`).join("");
+
+function setSlide(i, dir = 0) {
+  const old = card.querySelector(".slide");
+  const slide = document.createElement("div");
+  slide.className = "slide";
+  slide.innerHTML = pageHTML(pages[i]);
+  if (old && dir) {
+    slide.classList.add(dir > 0 ? "out-right" : "out-left");
+    card.appendChild(slide);
+    old.classList.add(dir > 0 ? "out-left" : "out-right");
+    requestAnimationFrame(() => requestAnimationFrame(() => slide.classList.remove("out-left", "out-right")));
+    setTimeout(() => old.remove(), 320);
+  } else {
+    card.innerHTML = "";
+    card.appendChild(slide);
+  }
+  cur = i;
+  [...dots.children].forEach((d, k) => d.classList.toggle("active", k === i));
+  $("prev").style.visibility = i === 0 ? "hidden" : "visible";
+  $("next").style.visibility = i === pages.length - 1 ? "hidden" : "visible";
+}
+
+/* 計算傳單 → 放大卡片的轉換（FLIP 動畫） */
+function flyerTransform() {
+  const f = flyer.getBoundingClientRect();
+  const c = card.getBoundingClientRect();
+  const s = f.width / c.width;
+  const rot = getComputedStyle(document.documentElement).getPropertyValue("--flyer-rot").trim() || "0deg";
+  // 以中心點對齊
+  const dx = (f.left + f.width / 2) - (c.left + c.width / 2);
+  const dy = (f.top + f.height / 2) - (c.top + c.height / 2);
+  return `translate(${dx}px, ${dy}px) rotate(${rot}) scale(${s})`;
+}
+
+function open() {
+  if (isOpen) return; isOpen = true;
+  setSlide(0);
+  overlay.classList.add("show");
+  card.classList.remove("anim");
+  card.style.transformOrigin = "center center";
+  card.style.transform = flyerTransform();
+  flyer.classList.add("hidden"); $("pill").classList.add("hidden");
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    card.classList.add("anim");
+    card.style.transform = "none";
+    overlay.classList.add("on");
+    setTimeout(() => overlay.classList.add("ui"), 350);
+  }));
+}
+
+function close() {
+  if (!isOpen) return; isOpen = false;
+  overlay.classList.remove("ui", "on");
+  // 關閉時回到封面再縮回電線桿
+  if (cur !== 0) setSlide(0);
+  card.classList.add("anim");
+  card.style.transform = flyerTransform();
+  setTimeout(() => {
+    overlay.classList.remove("show");
+    flyer.classList.remove("hidden"); $("pill").classList.remove("hidden");
+    card.classList.remove("anim");
+  }, 500);
+}
+
+function go(i) {
+  if (i < 0 || i >= pages.length || i === cur) return;
+  setSlide(i, i > cur ? 1 : -1);
+}
+
+flyer.addEventListener("click", open);
+$("close").addEventListener("click", close);
+overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+$("prev").addEventListener("click", () => go(cur - 1));
+$("next").addEventListener("click", () => go(cur + 1));
+dots.addEventListener("click", e => { if (e.target.dataset.i) go(+e.target.dataset.i); });
+addEventListener("keydown", e => {
+  if (!isOpen) return;
+  if (e.key === "Escape") close();
+  if (e.key === "ArrowRight") go(cur + 1);
+  if (e.key === "ArrowLeft") go(cur - 1);
+});
+
+/* 手機滑動換頁 */
+let sx = null;
+card.addEventListener("touchstart", e => sx = e.touches[0].clientX, { passive: true });
+card.addEventListener("touchend", e => {
+  if (sx === null) return;
+  const dx = e.changedTouches[0].clientX - sx;
+  if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1));
+  sx = null;
+});
+</script>
+</body>
+</html>
